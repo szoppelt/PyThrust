@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 import csv
 import json
+import math
 
 
 @dataclass(frozen=True)
@@ -127,7 +128,7 @@ class PropellerDatabase:
         """Get a propeller entry by its ID."""
         return self._entries.get(prop_id)
 
-    def load(self, data_dir: Path) -> bool:
+    def load(self, data_dir: Path, strict: bool = False) -> bool:
         """Load all JSON/CSV entries from a dataset directory."""
         data_dir = Path(data_dir)
         if not data_dir.exists():
@@ -137,18 +138,23 @@ class PropellerDatabase:
         self._entries.clear()
         # Each JSON file points to a CSV with the RPM/J/Ct/Cp data.
         for json_path in sorted(data_dir.glob("*.json")):
-            entry = _load_entry(json_path, data_dir)
+            entry = _load_entry(json_path, data_dir, strict=strict)
             if entry is not None:
                 self._entries[entry.metadata.id] = entry
 
         self._loaded = bool(self._entries)
         return self._loaded
 
-    def load_entry(self, json_path: Path, data_dir: Optional[Path] = None) -> Optional[PropellerEntry]:
+    def load_entry(
+        self,
+        json_path: Path,
+        data_dir: Optional[Path] = None,
+        strict: bool = False,
+    ) -> Optional[PropellerEntry]:
         """Load a single JSON metadata file and store its entry."""
         json_path = Path(json_path)
         base_dir = Path(data_dir) if data_dir is not None else json_path.parent
-        entry = _load_entry(json_path, base_dir)
+        entry = _load_entry(json_path, base_dir, strict=strict)
         if entry is None:
             return None
 
@@ -232,7 +238,7 @@ def _find_insert_index(values: List[float], target: float) -> int:
     return min(max(lo, 1), len(values) - 1)
 
 
-def _load_entry(json_path: Path, data_dir: Path) -> Optional[PropellerEntry]:
+def _load_entry(json_path: Path, data_dir: Path, strict: bool = False) -> Optional[PropellerEntry]:
     """Load a JSON metadata file plus its CSV into a PropellerEntry."""
     try:
         metadata_raw = json.loads(json_path.read_text())
@@ -258,8 +264,14 @@ def _load_entry(json_path: Path, data_dir: Path) -> Optional[PropellerEntry]:
         return None
 
     data_by_rpm: Dict[float, List[PropellerDataPoint]] = {}
+    seen_keys: Dict[float, set[float]] = {}
+    required_cols = {"rpm", "J", "Ct", "Cp"}
     with csv_path.open("r", newline="") as handle:
         reader = csv.DictReader(handle)
+        if reader.fieldnames is None or not required_cols.issubset(set(reader.fieldnames)):
+            if strict:
+                raise ValueError(f"Missing required columns in {csv_path.name}")
+            return None
         for row in reader:
             try:
                 rpm = _normalize_rpm(float(row["rpm"]))
@@ -267,7 +279,25 @@ def _load_entry(json_path: Path, data_dir: Path) -> Optional[PropellerEntry]:
                 ct = float(row["Ct"])
                 cp = float(row["Cp"])
             except (KeyError, ValueError):
+                if strict:
+                    raise ValueError(f"Invalid numeric values in {csv_path.name}")
                 continue
+
+            if not (math.isfinite(rpm) and math.isfinite(j_value) and math.isfinite(ct) and math.isfinite(cp)):
+                if strict:
+                    raise ValueError(f"Non-finite values in {csv_path.name}")
+                continue
+            if rpm <= 0 or j_value < 0 or ct < 0 or cp < 0:
+                if strict:
+                    raise ValueError(f"Out-of-range values in {csv_path.name}")
+                continue
+
+            seen = seen_keys.setdefault(rpm, set())
+            if j_value in seen:
+                if strict:
+                    raise ValueError(f"Duplicate (rpm,J) pair in {csv_path.name}")
+                continue
+            seen.add(j_value)
 
             data_by_rpm.setdefault(rpm, []).append(
                 PropellerDataPoint(j=j_value, ct=ct, cp=cp)
@@ -275,5 +305,12 @@ def _load_entry(json_path: Path, data_dir: Path) -> Optional[PropellerEntry]:
 
     for rpm_key, points in data_by_rpm.items():
         data_by_rpm[rpm_key] = sorted(points, key=lambda p: p.j)
+
+    if strict:
+        for rpm_key, points in data_by_rpm.items():
+            if len(points) < 2:
+                raise ValueError(f"Insufficient points for RPM {rpm_key} in {csv_path.name}")
+        if not data_by_rpm:
+            raise ValueError(f"No valid data rows in {csv_path.name}")
 
     return PropellerEntry(metadata=metadata, data_by_rpm=data_by_rpm)
