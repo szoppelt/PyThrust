@@ -3,8 +3,13 @@
 from .models import (  # noqa: F401
     MotorSpec,
     BatterySpec,
-    ESCSpec,
+    SystemSpec,
     PropellerSpec,
     OperatingPoint,
 )
 from .solver import PropulsionSolver, SolverConfig  # noqa: F401
+from .autotune import (  # noqa: F401
+    ManufacturerTestPoint,
+    CalibrationResult,
+    PropulsionCalibrator,
+)

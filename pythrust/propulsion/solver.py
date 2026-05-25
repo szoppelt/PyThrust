@@ -10,7 +10,7 @@ import math
 from scipy.optimize import root_scalar
 
 from pythrust.propellers.database import PropellerEntry
-from .models import BatterySpec, ESCSpec, MotorSpec, OperatingPoint, PropellerSpec
+from .models import BatterySpec, MotorSpec, OperatingPoint, PropellerSpec, SystemSpec
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,7 @@ class PropulsionSolver:
         self,
         motor: MotorSpec,
         battery: BatterySpec,
-        esc: ESCSpec,
+        system: SystemSpec,
         propeller: PropellerSpec,
         prop_entry: PropellerEntry,
         rho: float,
@@ -70,7 +70,8 @@ class PropulsionSolver:
             if cp <= 0.0 or ct < 0.0 or j < 0.0:
                 return float("inf")
             v_motor = v_back + current_a * motor.resistance_ohm
-            return v_motor - throttle * battery.voltage_v
+            v_applied = throttle * battery.voltage_v
+            return v_motor + current_a * system.resistance_ohm - v_applied
 
         rpm_min = max(self.config.rpm_min, 1.0)
         if airspeed_mps > 0.0 and propeller.diameter_m > 0.0:
@@ -87,7 +88,7 @@ class PropulsionSolver:
             return self._build_infeasible_point(
                 motor,
                 battery,
-                esc,
+                system,
                 propeller,
                 prop_entry,
                 rho,
@@ -109,7 +110,7 @@ class PropulsionSolver:
             return self._build_infeasible_point(
                 motor,
                 battery,
-                esc,
+                system,
                 propeller,
                 prop_entry,
                 rho,
@@ -121,7 +122,7 @@ class PropulsionSolver:
         return self._build_point(
             motor,
             battery,
-            esc,
+            system,
             propeller,
             prop_entry,
             rho,
@@ -145,7 +146,7 @@ class PropulsionSolver:
         torque_nm = cp * rho * (n**2) * (propeller.diameter_m**5) / (2.0 * math.pi)
         kt = 60.0 / (2.0 * math.pi * motor.kv_rpm_per_v)
         current_a = torque_nm / kt + motor.no_load_current_a
-        v_back = rpm / (motor.kv_rpm_per_v * max(0.1, motor.back_emf_scale))
+        v_back = rpm / motor.kv_rpm_per_v
 
         return ct, cp, j, torque_nm, current_a, v_back
 
@@ -153,7 +154,7 @@ class PropulsionSolver:
         self,
         motor: MotorSpec,
         battery: BatterySpec,
-        esc: ESCSpec,
+        system: SystemSpec,
         propeller: PropellerSpec,
         prop_entry: PropellerEntry,
         rho: float,
@@ -174,7 +175,7 @@ class PropulsionSolver:
         shaft_power_w = cp * rho * (n**3) * (propeller.diameter_m**5)
         motor_voltage_v = v_back + current_a * motor.resistance_ohm
         motor_power_w = motor_voltage_v * current_a
-        battery_power_w = motor_power_w / max(1e-6, esc.efficiency * battery.discharge_efficiency)
+        battery_power_w = (motor_power_w + (current_a ** 2) * system.resistance_ohm) / max(1e-6, battery.discharge_efficiency)
 
         feasible = True
         reason = None
@@ -205,7 +206,7 @@ class PropulsionSolver:
         self,
         motor: MotorSpec,
         battery: BatterySpec,
-        esc: ESCSpec,
+        system: SystemSpec,
         propeller: PropellerSpec,
         prop_entry: PropellerEntry,
         rho: float,
@@ -216,7 +217,7 @@ class PropulsionSolver:
         point = self._build_point(
             motor,
             battery,
-            esc,
+            system,
             propeller,
             prop_entry,
             rho,

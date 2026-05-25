@@ -10,6 +10,8 @@ from typing import Optional
 class MotorSpec:
     """Motor electrical parameters.
 
+    All values are taken directly from the manufacturer datasheet.
+
     Units:
     - kv_rpm_per_v: RPM / V
     - resistance_ohm: ohm
@@ -21,7 +23,6 @@ class MotorSpec:
     resistance_ohm: float
     no_load_current_a: float
     current_max_a: float
-    back_emf_scale: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -38,14 +39,14 @@ class BatterySpec:
 
 
 @dataclass(frozen=True)
-class ESCSpec:
-    """ESC efficiency model.
+class SystemSpec:
+    """System transmission/line electrical parameters.
 
     Units:
-    - efficiency: 0-1
+    - resistance_ohm: ohm
     """
 
-    efficiency: float = 1.0
+    resistance_ohm: float = 0.0
 
 
 @dataclass(frozen=True)
