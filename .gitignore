@@ -5,3 +5,9 @@ __pycache__/
 venv/
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+
+# temp.
+docs/
+references/
+
+.antigravitycli/
