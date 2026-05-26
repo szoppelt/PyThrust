@@ -21,7 +21,7 @@ from pythrust.openmdao import PropulsionComponent
 def main():
     # 1. Load Propeller Database
     db = PropellerDatabase()
-    db.load(Path("datasets/propellers/apc_202602"), strict=False)
+    db.load(Path("data/propellers/apc_202602"), strict=False)
     prop_entry = db.get("APC_13x6.5E")
     if prop_entry is None:
         print("Error: Propeller 'APC_13x6.5E' not found.")

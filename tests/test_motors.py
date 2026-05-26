@@ -5,7 +5,7 @@ from pythrust.motors import MotorDatabase
 
 def test_motor_database():
     db = MotorDatabase()
-    data_dir = Path(__file__).parent.parent / "datasets" / "brushless-motor"
+    data_dir = Path(__file__).parent.parent / "data" / "motors"
     
     # Verify load from directory
     assert db.load(data_dir)

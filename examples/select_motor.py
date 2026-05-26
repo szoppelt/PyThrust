@@ -21,7 +21,7 @@ from pythrust.openmdao import PropulsionComponent
 def main():
     # 1. Load Propeller Database
     db = PropellerDatabase()
-    db.load(Path("datasets/propellers/apc_202602"), strict=False)
+    db.load(Path("data/propellers/apc_202602"), strict=False)
     prop_entry = db.get("APC_13x6.5E")
     if prop_entry is None:
         print("Error: Propeller 'APC_13x6.5E' not found.")
@@ -74,7 +74,7 @@ def main():
     # 3. Load Motor Database from PyThrust
     from pythrust.motors import MotorDatabase
 
-    motors_db_path = Path(__file__).resolve().parent.parent / "datasets" / "brushless-motor"
+    motors_db_path = Path(__file__).resolve().parent.parent / "data" / "motors"
     db_motors = MotorDatabase()
     if not db_motors.load(motors_db_path):
         print(f"\nError: Motor database not found at {motors_db_path}")

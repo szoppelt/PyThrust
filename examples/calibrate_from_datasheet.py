@@ -36,7 +36,7 @@ propeller = PropellerSpec(diameter_m=0.3302)     # 13-inch propeller
 
 # ── 3. Load propeller aerodynamic data ────────────────────────────────────────
 db = PropellerDatabase()
-db.load(Path("datasets/propellers/apc_202602"), strict=False)
+db.load(Path("data/propellers/apc_202602"), strict=False)
 prop_entry = db.get("APC_13x6.5E")
 if prop_entry is None:
     raise SystemExit("Propeller 'APC_13x6.5E' not found in dataset.")
