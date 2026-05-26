@@ -19,9 +19,9 @@ class SolverConfig:
 
     rpm_min: float = 100.0
     rpm_max_margin: float = 1.1
-    eps_rpm: float = 1e-3
-    eps_v: float = 1e-4
-    max_iter: int = 60
+    eps_rpm: float = 1e-8
+    eps_v: float = 1e-8
+    max_iter: int = 100
 
 
 class PropulsionSolver:
