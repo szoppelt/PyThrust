@@ -92,3 +92,20 @@ An operating point is marked as infeasible (`point.is_feasible = False`) if:
 - `motor_current_a > current_max_a` (motor current limit exceeded)
 - `ct < 0` or `cp < 0` or `advance_ratio < 0` (aerodynamic coefficients out of physical range)
 - No valid RPM bracket with a voltage sign change is found.
+
+---
+
+## 5) PyBaMM Electrochemical Battery Simulation Example
+
+You can run a dynamic flight mission simulation that integrates the **Single Particle Model (SPM)** lithium-ion battery solver from **PyBaMM** with the propulsion model. The simulation will calculate dynamic cell voltage, state of charge (SoC) via electrochemical diffusion, and system thrust.
+
+To run the PyBaMM example:
+```bash
+PYTHONPATH=. .venv/bin/python examples/simulate_pybamm_mission.py
+```
+This generates a detailed plot showing:
+- Throttle profile and terminal voltage under dynamic loads (capturing electrochemical voltage sag and relaxation recovery).
+- Non-linear State of Charge (SoC %) based on discharge capacity.
+- Motor current draw and produced thrust.
+
+The plot is saved to [pybamm_mission_results.png](file:///home/huseyin/setuav/PyThrust/docs/images/pybamm_mission_results.png).
